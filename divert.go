@@ -24,10 +24,10 @@ var (
 )
 
 func init() {
-	LoadDLL()
+	loadDLL()
 }
 
-func LoadDLL() {
+func loadDLL() {
 	winDivertDLL = windows.MustLoadDLL("WinDivert.dll")
 
 	winDivertOpen = winDivertDLL.MustFindProc("WinDivertOpen")
@@ -43,6 +43,7 @@ func LoadDLL() {
 
 type Handle uintptr
 
+// Open returns windivert Handle if succeed.
 func Open(filter string, layer Layer, priority int16, flags uint64) (Handle, error) {
 	if priority < PriorityLowest || priority > PriorityHighest {
 		return 0, fmt.Errorf("invalid priority (%d)", priority)
@@ -86,7 +87,7 @@ func (h Handle) Recv(packet []byte, address *Address) (int, error) {
 	return int(recvLen), nil
 }
 
-func (h Handle) RecvEx([]byte, *Address, uint64) (int, error) {
+func (h Handle) RecvEx(_ []byte, _ *Address, _ uint64) (int, error) {
 	_ = winDivertRecvEx
 	return 0, errors.New("not implemented")
 }
@@ -108,7 +109,7 @@ func (h Handle) Send(packet []byte, address *Address) (int, error) {
 	return int(sendLen), nil
 }
 
-func (h Handle) SendEx([]byte, *Address, uint64) (int, error) {
+func (h Handle) SendEx(_ []byte, _ *Address, _ uint64) (int, error) {
 	_ = winDivertSendEx
 	return 0, errors.New("not implemented")
 }
