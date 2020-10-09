@@ -9,6 +9,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+const winDivertDLLName = "WinDivert.dll"
+
 var (
 	winDivertDLL *windows.DLL
 
@@ -24,11 +26,7 @@ var (
 )
 
 func init() {
-	loadDLL()
-}
-
-func loadDLL() {
-	winDivertDLL = windows.MustLoadDLL("WinDivert.dll")
+	winDivertDLL = windows.MustLoadDLL(winDivertDLLName)
 
 	winDivertOpen = winDivertDLL.MustFindProc("WinDivertOpen")
 	winDivertRecv = winDivertDLL.MustFindProc("WinDivertRecv")
