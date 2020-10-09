@@ -1,2 +1,2 @@
-# go-divert
-Go bindings for Win-Divert 2.x
+# WinDivert-Go
+Go bindings for WinDivert 2.x

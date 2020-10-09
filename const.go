@@ -1,4 +1,4 @@
-package divert
+package windivert
 
 //WinDivert layers.
 type Layer int

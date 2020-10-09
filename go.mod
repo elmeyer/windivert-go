@@ -1,4 +1,4 @@
-module github.com/xjasonlyu/go-divert
+module github.com/xjasonlyu/windivert-go
 
 go 1.15
 
