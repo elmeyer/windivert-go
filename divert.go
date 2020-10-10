@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -12,6 +13,7 @@ import (
 const winDivertDLLName = "WinDivert.dll"
 
 var (
+	loadOnce     sync.Once
 	winDivertDLL *windows.DLL
 
 	winDivertOpen     *windows.Proc
@@ -25,7 +27,7 @@ var (
 	winDivertGetParam *windows.Proc
 )
 
-func init() {
+func loadDLL() {
 	winDivertDLL = windows.MustLoadDLL(winDivertDLLName)
 
 	winDivertOpen = winDivertDLL.MustFindProc("WinDivertOpen")
@@ -43,6 +45,8 @@ type Handle uintptr
 
 // Open returns windivert Handle if succeed.
 func Open(filter string, layer Layer, priority int16, flags uint64) (Handle, error) {
+	loadOnce.Do(loadDLL) /* make sure DLL only load once. */
+
 	if priority < PriorityLowest || priority > PriorityHighest {
 		return 0, fmt.Errorf("invalid priority (%d)", priority)
 	}
