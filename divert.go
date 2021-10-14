@@ -17,15 +17,16 @@ var (
 	loadOnce     sync.Once
 	winDivertDLL *windows.DLL
 
-	winDivertOpen     *windows.Proc
-	winDivertRecv     *windows.Proc
-	winDivertRecvEx   *windows.Proc
-	winDivertSend     *windows.Proc
-	winDivertSendEx   *windows.Proc
-	winDivertShutdown *windows.Proc
-	winDivertClose    *windows.Proc
-	winDivertSetParam *windows.Proc
-	winDivertGetParam *windows.Proc
+	winDivertOpen              *windows.Proc
+	winDivertRecv              *windows.Proc
+	winDivertRecvEx            *windows.Proc
+	winDivertSend              *windows.Proc
+	winDivertSendEx            *windows.Proc
+	winDivertShutdown          *windows.Proc
+	winDivertClose             *windows.Proc
+	winDivertSetParam          *windows.Proc
+	winDivertGetParam          *windows.Proc
+	winDivertHelperParsePacket *windows.Proc
 )
 
 func loadDLL() {
@@ -40,6 +41,7 @@ func loadDLL() {
 	winDivertClose = winDivertDLL.MustFindProc("WinDivertClose")
 	winDivertSetParam = winDivertDLL.MustFindProc("WinDivertSetParam")
 	winDivertGetParam = winDivertDLL.MustFindProc("WinDivertGetParam")
+	winDivertHelperParsePacket = winDivertDLL.MustFindProc("WinDivertHelperParsePacket")
 }
 
 type Handle uintptr
@@ -201,4 +203,34 @@ func (h Handle) GetParam(param Param) (uint64, error) {
 	}
 
 	return value, nil
+}
+
+// Returns the length of the first packet in packets.
+// Loop over a batch of packets by first calling this function on the full
+// batch, returning the length of the first packet, and then calling it again
+// on packets[previousPacketLen:] and so on.
+func (h Handle) WinDivertHelperParsePacket(packets []byte) (int, error) {
+	var pNextLen uint
+
+	ok, _, err := winDivertHelperParsePacket.Call(
+		uintptr(unsafe.Pointer(&packets[0])),
+		uintptr(len(packets)),
+		uintptr(0), // ppIpHdr
+		uintptr(0), // ppIpv6Hdr
+		uintptr(0), // pProtocol
+		uintptr(0), // ppIcmpHdr
+		uintptr(0), // ppIcmpv6Hdr
+		uintptr(0), // ppTcpHdr
+		uintptr(0), // ppUdpHdr
+		uintptr(0), // ppData
+		uintptr(0), // pDataLen
+		uintptr(0), // ppNext
+		uintptr(unsafe.Pointer(&pNextLen)),
+	)
+
+	if ok == 0 {
+		return 0, Error(err.(windows.Errno))
+	}
+
+	return int(pNextLen), nil
 }
