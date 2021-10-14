@@ -1,7 +1,6 @@
 package windivert
 
 import (
-	"errors"
 	"fmt"
 	"runtime"
 	"sync"
@@ -11,6 +10,8 @@ import (
 )
 
 const winDivertDLLName = "WinDivert.dll"
+
+const addrSize = unsafe.Sizeof(Address{})
 
 var (
 	loadOnce     sync.Once
@@ -89,9 +90,26 @@ func (h Handle) Recv(packet []byte, address *Address) (int, error) {
 	return int(recvLen), nil
 }
 
-func (h Handle) RecvEx(_ []byte, _ *Address, _ uint64) (int, error) {
-	_ = winDivertRecvEx
-	return 0, errors.New("not implemented")
+func (h Handle) RecvEx(packets []byte, addresses []Address) (int, error) {
+	var recvLen uint
+	addrLen := uint(uintptr(len(addresses)) * addrSize)
+
+	ok, _, err := winDivertRecvEx.Call(
+		uintptr(h),
+		uintptr(unsafe.Pointer(&packets[0])),
+		uintptr(len(packets)),
+		uintptr(unsafe.Pointer(&recvLen)),
+		uintptr(0),
+		uintptr(unsafe.Pointer(&addresses[0])),
+		uintptr(unsafe.Pointer(&addrLen)),
+		uintptr(0),
+	)
+
+	if ok == 0 {
+		return 0, Error(err.(windows.Errno))
+	}
+
+	return int(recvLen), nil
 }
 
 func (h Handle) Send(packet []byte, address *Address) (int, error) {
@@ -111,9 +129,26 @@ func (h Handle) Send(packet []byte, address *Address) (int, error) {
 	return int(sendLen), nil
 }
 
-func (h Handle) SendEx(_ []byte, _ *Address, _ uint64) (int, error) {
-	_ = winDivertSendEx
-	return 0, errors.New("not implemented")
+func (h Handle) SendEx(packets []byte, addresses []Address) (int, error) {
+	var sendLen uint
+	addrLen := uintptr(len(addresses)) * addrSize
+
+	ok, _, err := winDivertSendEx.Call(
+		uintptr(h),
+		uintptr(unsafe.Pointer(&packets[0])),
+		uintptr(len(packets)),
+		uintptr(unsafe.Pointer(&sendLen)),
+		uintptr(0),
+		uintptr(unsafe.Pointer(&addresses[0])),
+		addrLen,
+		uintptr(0),
+	)
+
+	if ok == 0 {
+		return 0, Error(err.(windows.Errno))
+	}
+
+	return int(sendLen), nil
 }
 
 func (h Handle) Shutdown(how Shutdown) error {
