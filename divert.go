@@ -205,11 +205,11 @@ func (h Handle) GetParam(param Param) (uint64, error) {
 	return value, nil
 }
 
-// Returns the length of the first packet in packets.
+// HelperParsePacket returns the length of the first packet in packets.
 // Loop over a batch of packets by first calling this function on the full
 // batch, returning the length of the first packet, and then calling it again
 // on packets[previousPacketLen:] and so on.
-func (h Handle) WinDivertHelperParsePacket(packets []byte) (int, error) {
+func HelperParsePacket(packets []byte) (int, error) {
 	var pNextLen uint
 
 	ok, _, err := winDivertHelperParsePacket.Call(
