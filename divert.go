@@ -232,5 +232,5 @@ func HelperParsePacket(packets []byte) (int, error) {
 		return 0, Error(err.(windows.Errno))
 	}
 
-	return int(pNextLen), nil
+	return len(packets) - int(pNextLen), nil
 }
