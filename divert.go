@@ -1,6 +1,7 @@
 package windivert
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"sync"
@@ -92,26 +93,28 @@ func (h Handle) Recv(packet []byte, address *Address) (int, error) {
 	return int(recvLen), nil
 }
 
-func (h Handle) RecvEx(packets []byte, addresses []Address) (int, error) {
-	var recvLen uint
-	addrLen := uint(uintptr(len(addresses)) * addrSize)
+func (h Handle) RecvEx(packets []byte, addresses []Address, addrLen *uint32, overlapped *windows.Overlapped) error {
+	if addrLen == nil {
+		return errors.New("parameter is nil")
+	}
+	*addrLen = uint32(uintptr(len(addresses)) * addrSize)
 
 	ok, _, err := winDivertRecvEx.Call(
 		uintptr(h),
 		uintptr(unsafe.Pointer(&packets[0])),
 		uintptr(len(packets)),
-		uintptr(unsafe.Pointer(&recvLen)),
+		uintptr(0),
 		uintptr(0),
 		uintptr(unsafe.Pointer(&addresses[0])),
-		uintptr(unsafe.Pointer(&addrLen)),
-		uintptr(0),
+		uintptr(unsafe.Pointer(addrLen)),
+		uintptr(unsafe.Pointer(overlapped)),
 	)
 
 	if ok == 0 {
-		return 0, Error(err.(windows.Errno))
+		return Error(err.(windows.Errno))
 	}
 
-	return int(recvLen), nil
+	return nil
 }
 
 func (h Handle) Send(packet []byte, address *Address) (int, error) {
